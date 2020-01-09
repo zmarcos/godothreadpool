@@ -36,9 +36,21 @@ func shutdown():
 		tasks_wait.post()
 
 
-func free():
+func queue_free() -> void:
 	shutdown()
-	.free()
+	.queue_free()
+
+
+func _notification(what: int):
+	if what == NOTIFICATION_PREDELETE:
+		__wait_for_shutdown()
+
+
+func __wait_for_shutdown():
+	shutdown()
+	for t in pool:
+		if t.is_active():
+			t.wait_to_finish()
 
 
 func __create_pool():
