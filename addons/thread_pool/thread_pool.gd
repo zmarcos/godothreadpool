@@ -27,16 +27,16 @@ func queue_free() -> void:
 	.queue_free()
 
 
-func submit_task(instance: Object, method: String, parameter, task_tag = null) -> void:
-	__enqueue_task(instance, method, parameter, task_tag, false, false)
+func submit_task(instance: Object, method: String, parameter, task_tag = null):
+	return __enqueue_task(instance, method, parameter, task_tag, false, false)
 
 
-func submit_task_unparameterized(instance: Object, method: String, task_tag = null) -> void:
-	__enqueue_task(instance, method, null, task_tag, true, false)
+func submit_task_unparameterized(instance: Object, method: String, task_tag = null):
+	return __enqueue_task(instance, method, null, task_tag, true, false)
 
 
-func submit_task_array_parameterized(instance: Object, method: String, parameter: Array, task_tag = null) -> void:
-	__enqueue_task(instance, method, parameter, task_tag, false, true)
+func submit_task_array_parameterized(instance: Object, method: String, parameter: Array, task_tag = null):
+	return __enqueue_task(instance, method, parameter, task_tag, false, true)
 
 
 func shutdown():
@@ -77,14 +77,19 @@ func do_nothing(arg) -> void:
 	OS.delay_msec(1) # if there is nothing to do, go sleep
 
 
-func __enqueue_task(instance: Object, method: String, parameter = null, task_tag = null, no_argument = false, array_argument = false) -> void:
+func __enqueue_task(instance: Object, method: String, parameter = null, task_tag = null, no_argument = false, array_argument = false):
 	if __finished:
-		return
+		return null
+	
+	var task = Task.new(instance, method, parameter, task_tag, no_argument, array_argument)
+	
 	__tasks_lock.lock()
-	__tasks.push_front(Task.new(instance, method, parameter, task_tag, no_argument, array_argument))
+	__tasks.push_front(task)
 	__tasks_wait.post()
 	__start()
 	__tasks_lock.unlock()
+	
+	return task
 
 
 func __wait_for_shutdown():
@@ -139,9 +144,11 @@ func __execute_tasks(arg_thread) -> void:
 
 
 class Task:
+	var __task_wait: Semaphore = Semaphore.new()
 	var target_instance: Object
 	var target_method: String
 	var target_argument
+	var finished: bool
 	var result
 	var tag
 	var __no_argument: bool
@@ -152,6 +159,7 @@ class Task:
 		target_method = method
 		target_argument = parameter
 		result = null
+		finished = false
 		tag = task_tag
 		__no_argument = no_argument
 		__array_argument = array_argument
@@ -164,3 +172,13 @@ class Task:
 			result = target_instance.callv(target_method, target_argument)
 		else:
 			result = target_instance.call(target_method, target_argument)
+		
+		finished = true
+		__task_wait.post()
+
+
+	func wait_for_result():
+		if not finished:
+			__task_wait.wait()
+		
+		return result
