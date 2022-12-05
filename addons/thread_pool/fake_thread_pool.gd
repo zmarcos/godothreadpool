@@ -20,8 +20,8 @@ func _notification(what: int):
 
 
 func queue_free() -> void:
-	shutdown()\
-	.queue_free()
+	shutdown()
+	super.queue_free()
 
 
 func submit_task(instance: Object, method: String, parameter, task_tag = null) -> void:
