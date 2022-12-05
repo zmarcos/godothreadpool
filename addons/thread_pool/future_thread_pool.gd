@@ -4,7 +4,7 @@ extends Node
 
 signal task_completed(task)
 
-export var use_signals: bool = false
+@export var use_signals: bool = false
 
 var __tasks: Array = []
 var __started = false
@@ -12,7 +12,7 @@ var __finished = false
 var __tasks_lock: Mutex = Mutex.new()
 var __tasks_wait: Semaphore = Semaphore.new()
 
-onready var __pool = __create_pool()
+@onready var __pool = __create_pool()
 
 func _notification(what: int):
 	if what == NOTIFICATION_PREDELETE:
@@ -20,7 +20,7 @@ func _notification(what: int):
 
 
 func queue_free() -> void:
-	shutdown()
+	shutdown()\
 	.queue_free()
 
 
@@ -39,7 +39,7 @@ func submit_task_array_parameterized(instance: Object, method: String, parameter
 func shutdown():
 	__finished = true
 	__tasks_lock.lock()
-	if not __tasks.empty():
+	if not __tasks.is_empty():
 		var size = __tasks.size()
 		for i in size:
 			(__tasks[i] as Future).__finish()
@@ -84,12 +84,12 @@ func __create_pool():
 func __start() -> void:
 	if not __started:
 		for t in __pool:
-			(t as Thread).start(self, "__execute_tasks", t)
+			(t as Thread).start(__execute_tasks.bind(t))
 		__started = true
 
 func __drain_this_task(task: Future) -> Future:
 	__tasks_lock.lock()
-	if __tasks.empty():
+	if __tasks.is_empty():
 		__tasks_lock.unlock()
 		return null
 	var result = null
@@ -97,7 +97,7 @@ func __drain_this_task(task: Future) -> Future:
 	for i in size:
 		var candidate_task: Future = __tasks[i]
 		if task == candidate_task:
-			__tasks.remove(i)
+			__tasks.erase(i)
 			result = candidate_task
 			break
 	__tasks_lock.unlock()
@@ -107,7 +107,7 @@ func __drain_this_task(task: Future) -> Future:
 func __drain_task() -> Future:
 	__tasks_lock.lock()
 	var result
-	if __tasks.empty():
+	if __tasks.is_empty():
 		result = Future.new(self, "do_nothing", null, null, true, false, self)# normally, this is not expected, but better safe than sorry
 		result.tag = result
 	else:
