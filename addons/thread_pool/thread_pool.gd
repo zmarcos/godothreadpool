@@ -5,7 +5,7 @@ extends Node
 signal task_finished(task_tag)
 signal task_discarded(task)
 
-export var discard_finished_tasks: bool = true
+@export var discard_finished_tasks: bool = true
 
 var __tasks: Array = []
 var __started = false
@@ -15,7 +15,7 @@ var __tasks_wait: Semaphore = Semaphore.new()
 var __finished_tasks: Array = []
 var __finished_tasks_lock: Mutex = Mutex.new()
 
-onready var __pool = __create_pool()
+@onready var __pool = __create_pool()
 
 func _notification(what: int):
 	if what == NOTIFICATION_PREDELETE:
@@ -24,7 +24,7 @@ func _notification(what: int):
 
 func queue_free() -> void:
 	shutdown()
-	.queue_free()
+	super.queue_free()
 
 
 func submit_task(instance: Object, method: String, parameter, task_tag = null) -> void:
@@ -62,11 +62,10 @@ func fetch_finished_tasks_by_tag(tag) -> Array:
 	var new_finished_tasks = []
 	for t in __finished_tasks.size():
 		var task = __finished_tasks[t]
-		match task.tag:
-			tag:
-				result.append(task)
-			_:
-				new_finished_tasks.append(task)
+		if task.tag == tag:
+			result.append(task)
+		else:
+			new_finished_tasks.append(task)
 	__finished_tasks = new_finished_tasks
 	__finished_tasks_lock.unlock()
 	return result
@@ -104,14 +103,14 @@ func __create_pool():
 func __start() -> void:
 	if not __started:
 		for t in __pool:
-			(t as Thread).start(self, "__execute_tasks", t)
+			(t as Thread).start(__execute_tasks.bind(t))
 		__started = true
 
 
 func __drain_task() -> Task:
 	__tasks_lock.lock()
 	var result
-	if __tasks.empty():
+	if __tasks.is_empty():
 		result = Task.new(self, "do_nothing", null, null, true, false)# normally, this is not expected, but better safe than sorry
 		result.tag = result
 	else:
