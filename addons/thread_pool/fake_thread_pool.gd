@@ -1,11 +1,20 @@
+@icon("thread.png")
 class_name FakeThreadPool
 extends Node
-# A fake thread pool
+## A fake thread pool.
+##
+## For environments that do NOT support multithreading.[br]
+## [br][b]WARNING[/b]: We can NOT guarantee that it is 100% compatible with your code, you should test your game thoroughly.
 
+## See [signal ThreadPool.task_finished].
 signal task_finished(task_tag)
+## See [signal ThreadPool.task_discarded].
 signal task_discarded(task)
 
+## See [member ThreadPool.discard_finished_tasks].
 @export var discard_finished_tasks: bool = true
+## Time in milliseconds the thread pool will spare for execution of tasks.[br]
+## [br][b]WARNING[/b]: If a single task you submitted takes more than this to execute, it will only execute that task, but it will wait until it is completely done.
 @export var msec_exec_time: int = 11
 
 var __tasks: Array = []
@@ -19,28 +28,34 @@ func _notification(what: int):
 		shutdown()
 
 
+## See [method Node.queue_free].
 func queue_free() -> void:
 	shutdown()
 	super.queue_free()
 
 
+## See [method ThreadPool.submit_task].
 func submit_task(instance: Object, method: String, parameter, task_tag = null) -> void:
 	__enqueue_task(instance, method, parameter, task_tag, false, false)
 
 
+## See [method ThreadPool.submit_task_unparameterized].
 func submit_task_unparameterized(instance: Object, method: String, task_tag = null) -> void:
 	__enqueue_task(instance, method, null, task_tag, true, false)
 
 
+## See [method ThreadPool.submit_task_array_parameterized].
 func submit_task_array_parameterized(instance: Object, method: String, parameter: Array, task_tag = null) -> void:
 	__enqueue_task(instance, method, parameter, task_tag, false, true)
 
 
+## See [method ThreadPool.shutdown].
 func shutdown():
 	__finished = true
 	__tasks.clear()
 
 
+## See [method ThreadPool.fetch_finished_tasks].
 func fetch_finished_tasks() -> Array:
 	__avoid_fake_deadlock_on_fetch()
 	var result = __finished_tasks
@@ -48,6 +63,7 @@ func fetch_finished_tasks() -> Array:
 	return result
 
 
+## See [method ThreadPool.fetch_finished_tasks_by_tag].
 func fetch_finished_tasks_by_tag(tag) -> Array:
 	__avoid_fake_deadlock_on_fetch()
 	var result = []
@@ -62,6 +78,8 @@ func fetch_finished_tasks_by_tag(tag) -> Array:
 	return result
 
 
+## When doing nothing is necessary.[br]
+## [br]This time, it actually does nothing.
 func do_nothing(arg) -> void:
 	#print("doing nothing")
 	pass
@@ -109,6 +127,9 @@ func __execute_tasks(force_execution = false) -> void:
 			return
 
 
+## Provides information for the task that was performed.
+##
+## See [ThreadPool.Task].
 class Task extends ThreadPool.Task:
 	func _init(instance: Object, method: String, parameter, task_tag, no_argument: bool, array_argument: bool):
 		self.instance = instance
