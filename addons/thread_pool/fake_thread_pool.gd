@@ -109,7 +109,3 @@ func __execute_tasks(force_execution = false) -> void:
 		if (OS.get_ticks_msec() - exec_time) > msec_exec_time:
 			return
 
-
-class Task extends ThreadPool.Task:
-	func _init(instance: Object, method: String, parameter, task_tag, no_argument: bool, array_argument: bool).(instance, method, parameter, task_tag, no_argument, array_argument):
-		pass
